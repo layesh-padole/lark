@@ -1,0 +1,100 @@
+// SAS Grammar for Lark Parser
+// Handles core SAS constructs without macros
+
+?start: program
+
+program: statement*
+
+statement: data_step
+         | proc_step  
+         | COMMENT
+         | ";"
+
+// DATA Step
+data_step: "data"i dataset_ref? ";" set_statement? statement_body* "run"i ";"
+
+set_statement: "set"i dataset_ref ("(" dataset_options ")")? ";"
+
+dataset_options: option ("," option)*
+
+option: IDENTIFIER "=" option_value
+
+option_value: STRING 
+            | NUMBER 
+            | dataset_ref
+
+statement_body: assignment
+              | if_statement
+              | empty_statement
+              | COMMENT
+
+empty_statement: ";"
+
+// PROC Step  
+proc_step: "proc"i IDENTIFIER proc_options? ";" proc_body* "run"i ";"
+
+proc_options: option+
+
+proc_body: statement_body
+
+// Assignments
+assignment: variable "=" expression ";"
+
+assignment_no_semicolon: variable "=" expression
+
+// IF Statements  
+if_statement: "if"i condition "then"i then_action ";"
+
+then_action: assignment_no_semicolon
+           | expression
+
+condition: expression comparison_op expression
+         | expression
+
+comparison_op: EQ | NE | LT | LE | GT | GE | EQUAL | NEQUAL | LESSEQ | MOREEQ | LESS | MORE
+
+EQ: "eq"i
+NE: "ne"i  
+LT: "lt"i
+LE: "le"i
+GT: "gt"i
+GE: "ge"i
+EQUAL: "="
+NEQUAL: "<>"
+LESSEQ: "<="
+MOREEQ: ">="
+LESS: "<"
+MORE: ">"
+
+// Expressions  
+expression: term
+          | expression "+" term
+          | expression "-" term
+
+term: factor
+    | term MUL factor  
+    | term DIV factor
+
+MUL: "*"
+DIV: "/"
+
+factor: variable
+      | NUMBER
+      | STRING  
+      | "(" expression ")"
+
+variable: IDENTIFIER ("." IDENTIFIER)?
+
+dataset_ref: IDENTIFIER ("." IDENTIFIER)?
+
+// Terminals
+IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
+
+NUMBER: /\d+(\.\d+)?/
+
+STRING: /"[^"]*"/ | /'[^']*'/
+
+COMMENT: /\/\*[\s\S]*?\*\// | /^\s*\*[^\r\n]*/
+
+%import common.WS
+%ignore WS

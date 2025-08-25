@@ -1,0 +1,75 @@
+I want to build a SAS parser in Python . My goal is to achieve accuracy similar to Strumenta's SAS parser but using open-source tools.
+Requirements:
+
+Use Lark parser as the main parsing technology
+Python-native solution
+Handle SAS macros through preprocessing
+Generate clean ASTs for easy data lineage extraction
+Follow a 3-stage pipeline: Macro Preprocessor → Lark Parser → AST Transformer
+
+Context:
+
+I'm familiar with Python but new to parsing technologies
+Need to handle real-world SAS code including macros, DATA steps, PROC statements, and complex expressions
+Want to replicate Strumenta's StarLasu methodology but with Lark instead of ANTLR
+
+
+What I need:
+
+A complete Lark grammar for core SAS statements (DATA, SET, PROC, assignments, expressions)
+Python code for the 3-stage parsing pipeline
+AST node classes that make data lineage extraction easy
+A macro preprocessor that can handle %macro, %let, %do loops, and %if  and all other conditions
+An incremental implementation plan (start simple, add complexity)
+
+Specific SAS features to handle:
+
+Case-insensitive keywords
+Dataset references (library.dataset format)
+Variable assignments and expressions
+WHERE conditions and IF statements
+PROC statements with options
+Comments (/* */ and *)
+Basic macro expansion
+
+Please provide a complete, working implementation with clear separation between the three stages.
+
+Stage 1 (Macro Preprocessing) is Necessary Because:
+
+SAS macros generate code dynamically
+You can't parse %do loops with regular grammar
+Must expand macros BEFORE parsing syntax
+Purpose: Handle SAS macros and expand them into regular SAS code
+Technology: Pure Python (regex + logic)
+Input: Raw SAS code with macros
+Output: Clean SAS code without macros
+
+Stage 2 (Lark Parsing) Handles:
+
+Converting text to structured parse tree
+Syntax validation and error detection
+Language recognition
+Purpose: Parse expanded SAS code into parse tree
+Technology: Lark with SAS grammar
+Input: Clean SAS code (no macros)
+Output: Lark parse tree
+
+Stage 3 (AST Transformation) Provides:
+
+Clean, semantic representation
+Easy traversal and analysis
+StarLasu-style benefits without StarLasu
+Purpose: Convert parse tree to clean, semantic AST
+Technology: Custom transformer classes
+Input: Lark parse tree
+Output: Clean AST for analysis
+
+Final Architecture Decision
+Use the complete 3-stage pipeline, but implement it incrementally:
+
+Start Simple: Build Stage 2 + 3 first (no macros)
+Maintain Separation: Keep each stage independent and testable
+
+
+
+
