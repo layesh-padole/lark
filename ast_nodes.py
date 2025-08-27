@@ -113,10 +113,46 @@ class SetStatement(ASTNode):
 
 
 @dataclass
+class MergeStatement(ASTNode):
+    """Represents MERGE statements in DATA steps"""
+    datasets: List[DatasetRef]
+    options: List[DatasetOption]
+    
+    def __str__(self) -> str:
+        datasets_str = " ".join(str(ds) for ds in self.datasets)
+        if self.options:
+            opts = ", ".join(str(opt) for opt in self.options)
+            return f"MERGE {datasets_str} ({opts});"
+        return f"MERGE {datasets_str};"
+
+
+@dataclass
+class ByStatement(ASTNode):
+    """Represents BY statements in DATA steps"""
+    variables: List[Variable]
+    
+    def __str__(self) -> str:
+        vars_str = " ".join(str(var) for var in self.variables)
+        return f"BY {vars_str};"
+
+
+@dataclass
+class WhereClause(ASTNode):
+    """Represents WHERE clauses in DATA steps"""
+    condition: Condition
+    
+    def __str__(self) -> str:
+        return f"WHERE {self.condition};"
+
+
+@dataclass
 class DataStep(ASTNode):
     """Represents DATA steps"""
     output_dataset: Optional[DatasetRef]
     set_statement: Optional[SetStatement]
+    merge_statement: Optional[MergeStatement]
+    by_statement: Optional[ByStatement]
+    where_clause: Optional[WhereClause]
     statements: List[ASTNode]
     
     def __str__(self) -> str:
@@ -128,6 +164,12 @@ class DataStep(ASTNode):
             
         if self.set_statement:
             lines.append(f"  {self.set_statement}")
+        if self.merge_statement:
+            lines.append(f"  {self.merge_statement}")
+        if self.by_statement:
+            lines.append(f"  {self.by_statement}")
+        if self.where_clause:
+            lines.append(f"  {self.where_clause}")
             
         for stmt in self.statements:
             lines.append(f"  {stmt}")

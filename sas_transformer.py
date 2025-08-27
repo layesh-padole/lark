@@ -7,8 +7,9 @@ from lark import Transformer, v_args
 from typing import List, Optional, Any
 
 from ast_nodes import (
-    Program, DataStep, ProcStep, SetStatement, Assignment, IfStatement,
-    Variable, DatasetRef, Literal, BinaryOperation, Condition, DatasetOption
+    Program, DataStep, ProcStep, SetStatement, MergeStatement, ByStatement, WhereClause,
+    Assignment, IfStatement, Variable, DatasetRef, Literal, BinaryOperation, 
+    Condition, DatasetOption
 )
 
 
@@ -28,6 +29,9 @@ class SASTransformer(Transformer):
         """Transform DATA step"""
         dataset = None
         set_stmt = None
+        merge_stmt = None
+        by_stmt = None
+        where_clause = None
         statements = []
         
         for arg in args:
@@ -35,12 +39,21 @@ class SASTransformer(Transformer):
                 dataset = arg
             elif isinstance(arg, SetStatement):
                 set_stmt = arg
+            elif isinstance(arg, MergeStatement):
+                merge_stmt = arg
+            elif isinstance(arg, ByStatement):
+                by_stmt = arg
+            elif isinstance(arg, WhereClause):
+                where_clause = arg
             elif arg is not None:
                 statements.append(arg)
                 
         return DataStep(
             output_dataset=dataset,
             set_statement=set_stmt,
+            merge_statement=merge_stmt,
+            by_statement=by_stmt,
+            where_clause=where_clause,
             statements=statements
         )
     
@@ -86,11 +99,37 @@ class SASTransformer(Transformer):
         """Transform PROC body"""
         return args[0] if args else None
     
+    def data_step_body(self, args):
+        """Transform DATA step body element"""
+        return args[0] if args else None
+    
     @v_args(inline=True)
     def set_statement(self, dataset, *options):
         """Transform SET statement"""
         filtered_opts = [opt for opt in options if isinstance(opt, DatasetOption)]
         return SetStatement(dataset=dataset, options=filtered_opts)
+    
+    def merge_statement(self, args):
+        """Transform MERGE statement"""
+        datasets = []
+        options = []
+        
+        for arg in args:
+            if isinstance(arg, DatasetRef):
+                datasets.append(arg)
+            elif isinstance(arg, list):  # dataset_options
+                options.extend(opt for opt in arg if isinstance(opt, DatasetOption))
+                
+        return MergeStatement(datasets=datasets, options=options)
+    
+    def by_statement(self, variables):
+        """Transform BY statement"""
+        return ByStatement(variables=variables)
+    
+    @v_args(inline=True)
+    def where_clause(self, condition):
+        """Transform WHERE clause"""
+        return WhereClause(condition=condition)
     
     @v_args(inline=True)
     def assignment(self, variable, expression):
@@ -153,7 +192,7 @@ class SASTransformer(Transformer):
         """Transform expression"""
         if len(args) == 1:
             return args[0]
-        elif len(args) == 3:  # left op right
+        elif len(args) == 3:  # left_expression operator term
             return BinaryOperation(left=args[0], operator=str(args[1]), right=args[2])
         else:
             raise ValueError(f"Unexpected expression args: {args}")
@@ -162,10 +201,26 @@ class SASTransformer(Transformer):
         """Transform term (multiplication/division)"""
         if len(args) == 1:
             return args[0]
-        elif len(args) == 3:  # left op right
+        elif len(args) == 3:  # factor operator factor
             return BinaryOperation(left=args[0], operator=str(args[1]), right=args[2])
         else:
             raise ValueError(f"Unexpected term args: {args}")
+    
+    def ADD(self, token):
+        """Transform ADD token"""
+        return "+"
+    
+    def SUB(self, token):
+        """Transform SUB token"""
+        return "-"
+    
+    def MUL(self, token):
+        """Transform MUL token"""
+        return "*"
+        
+    def DIV(self, token):
+        """Transform DIV token"""
+        return "/"
     
     def factor(self, args):
         """Transform factor"""

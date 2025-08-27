@@ -1,34 +1,42 @@
 #!/usr/bin/env python3
 """
 Demo script for SAS Parser
-Shows both raw Lark parse tree and final semantic AST
+Shows parsing, AST generation, and data lineage extraction
 """
 
 from sas_parser import SASParser
-from lark.tree import pydot__tree_to_png
+from lineage_extractor import LineageExtractor, print_lineage_graph
+import json
 import sys
 
 
 def main():
     """Run demo with sample SAS code"""
     
-    # Sample SAS code with core constructs
+    # Enhanced sample SAS code with richer DATA step constructs
     sample_sas = """
-    /* Sample DATA step */
-    data work.output;
-        set work.input (obs=100);
+    /* Basic DATA step with SET */
+    data sales;
+        set raw.transactions;
+        where region = 'APAC';
         
-        /* Variable assignments */
-        total = price * quantity;
-        discounted_price = price * 0.9;
+        profit = revenue - cost;
+        margin = profit / revenue * 100;
         
-        /* Conditional logic */
-        if total > 1000 then high_value = 1;
+        if profit > 1000 then high_profit = 1;
+    run;
+    
+    /* DATA step with MERGE */
+    data customer_sales;
+        merge customers accounts;
+        by customer_id;
+        where status = 'ACTIVE';
         
+        total_value = account_balance + credit_limit;
     run;
     
     /* Simple PROC step */
-    proc print data=work.output;
+    proc print data=sales;
     run;
     """
     
@@ -40,8 +48,9 @@ def main():
     print("-" * 40)
     print(sample_sas.strip())
     
-    # Initialize parser
+    # Initialize parser and lineage extractor
     parser = SASParser()
+    extractor = LineageExtractor()
     
     try:
         # Parse and get both tree and AST
@@ -58,9 +67,23 @@ def main():
         print("\n\nAST Structure Analysis:")
         print("-" * 40)
         analyze_ast(ast)
+        
+        # Extract and display lineage metadata
+        print("\n\nData Lineage Extraction:")
+        print("-" * 40)
+        lineage = extractor.extract_lineage(ast)
+        
+        # Print detailed metadata
+        print("\nDetailed Metadata (JSON):")
+        print(json.dumps(lineage, indent=2))
+        
+        # Print lineage graph
+        print_lineage_graph(lineage)
 
     except Exception as e:
         print(f"\nParsing Error: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 

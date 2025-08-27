@@ -11,9 +11,21 @@ statement: data_step
          | ";"
 
 // DATA Step
-data_step: "data"i dataset_ref? ";" set_statement? statement_body* "run"i ";"
+data_step: "data"i dataset_ref? ";" data_step_body* "run"i ";"
+
+data_step_body: set_statement
+              | merge_statement  
+              | by_statement
+              | where_clause
+              | statement_body
 
 set_statement: "set"i dataset_ref ("(" dataset_options ")")? ";"
+
+merge_statement: "merge"i dataset_ref+ ("(" dataset_options ")")? ";"
+
+by_statement: "by"i variable+ ";"
+
+where_clause: "where"i condition ";"
 
 dataset_options: option ("," option)*
 
@@ -68,13 +80,15 @@ MORE: ">"
 
 // Expressions  
 expression: term
-          | expression "+" term
-          | expression "-" term
+          | expression ADD term
+          | expression SUB term
 
 term: factor
     | term MUL factor  
     | term DIV factor
 
+ADD: "+"
+SUB: "-"
 MUL: "*"
 DIV: "/"
 
