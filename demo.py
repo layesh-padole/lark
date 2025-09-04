@@ -5,16 +5,14 @@ Shows parsing, AST generation, and data lineage extraction
 """
 
 from sas_parser import SASParser
-from lineage_extractor import LineageExtractor, print_lineage_graph
+#from lineage_extractor import LineageExtractor, print_lineage_graph
 import json
 import sys
 
 
 def main():
     """Run demo with sample SAS code"""
-    
-    # Enhanced sample SAS code with richer DATA step constructs
-    sample_sas = """
+    backup_sas = """
     /* Basic DATA step with SET */
     data sales;
         set raw.transactions;
@@ -35,9 +33,17 @@ def main():
         total_value = account_balance + credit_limit;
     run;
     
-    /* Simple PROC step */
-    proc print data=sales;
+    """
+    # Enhanced sample SAS code with richer DATA step constructs
+    sample_sas = """
+    
+    data length_example;
+    length code $5;
+    code = "ABC";
     run;
+
+
+
     """
     
     print("=" * 60)
@@ -50,7 +56,7 @@ def main():
     
     # Initialize parser and lineage extractor
     parser = SASParser()
-    extractor = LineageExtractor()
+    #extractor = LineageExtractor()
     
     try:
         # Parse and get both tree and AST
@@ -68,17 +74,17 @@ def main():
         print("-" * 40)
         analyze_ast(ast)
         
-        # Extract and display lineage metadata
-        print("\n\nData Lineage Extraction:")
-        print("-" * 40)
-        lineage = extractor.extract_lineage(ast)
+        # # Extract and display lineage metadata
+        # print("\n\nData Lineage Extraction:")
+        # print("-" * 40)
+        # lineage = extractor.extract_lineage(ast)
         
-        # Print detailed metadata
-        print("\nDetailed Metadata (JSON):")
-        print(json.dumps(lineage, indent=2))
+        # # Print detailed metadata
+        # print("\nDetailed Metadata (JSON):")
+        # print(json.dumps(lineage, indent=2))
         
-        # Print lineage graph
-        print_lineage_graph(lineage)
+        # # Print lineage graph
+        # print_lineage_graph(lineage)
 
     except Exception as e:
         print(f"\nParsing Error: {e}")

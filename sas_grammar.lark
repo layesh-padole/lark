@@ -11,12 +11,28 @@ statement: data_step
          | ";"
 
 // DATA Step
-data_step: "data"i dataset_ref? ";" data_step_body* "run"i ";"
+data_step: "data"i dataset_ref* ";" data_step_body* "run"i ";"
 
 data_step_body: set_statement
               | merge_statement  
               | by_statement
               | where_clause
+              | keep_statement
+              | drop_statement
+              | rename_statement
+              | input_statement
+              | put_statement
+              | infile_statement
+              | file_statement
+              | format_statement
+              | informat_statement
+              | label_statement
+              | do_block
+              | output_statement
+              | retain_statement
+              | length_statement
+              | stop_statement
+              | delete_statement
               | statement_body
 
 set_statement: "set"i dataset_ref ("(" dataset_options ")")? ";"
@@ -27,9 +43,91 @@ by_statement: "by"i variable+ ";"
 
 where_clause: "where"i condition ";"
 
-dataset_options: option ("," option)*
+keep_statement: "keep"i variable+ ";"
+
+drop_statement: "drop"i variable+ ";"
+
+rename_statement: "rename"i rename_pair+ ";"
+
+rename_pair: variable "=" variable
+
+input_statement: "input"i input_spec+ ";"
+
+input_spec: variable format_spec?
+
+format_spec: FORMAT_LITERAL
+
+put_statement: "put"i put_spec+ ";"
+
+put_spec: variable format_spec?
+
+infile_statement: "infile"i file_ref file_options? ";"
+
+file_statement: "file"i file_ref file_options? ";"
+
+file_ref: STRING | IDENTIFIER
+
+file_options: option+
+
+format_statement: "format"i format_assignment+ ";"
+
+format_assignment: variable+ format_spec
+
+informat_statement: "informat"i informat_assignment+ ";"
+
+informat_assignment: variable+ format_spec
+
+label_statement: "label"i label_assignment+ ";"
+
+label_assignment: variable "=" STRING
+
+do_block: do_simple
+        | do_while_loop
+        | do_until_loop
+        | do_iterative_loop
+
+do_simple: "do"i ";" data_step_body* "end"i ";"
+
+do_while_loop: "do"i "while"i "(" condition ")" ";" data_step_body* "end"i ";"
+
+do_until_loop: "do"i "until"i "(" condition ")" ";" data_step_body* "end"i ";"
+
+do_iterative_loop: "do"i variable "=" expression "to"i expression ("by"i expression)? ";" data_step_body* "end"i ";"
+
+output_statement: "output"i dataset_ref? ";"
+
+retain_statement: "retain"i retain_spec+ ";"
+
+retain_spec: variable initial_value?
+
+initial_value: expression
+
+length_statement: "length"i length_assignment+ ";"
+
+length_assignment: variable+ length_spec
+
+length_spec: NUMBER | FORMAT_LITERAL
+
+stop_statement: "stop"i ";"
+
+delete_statement: "delete"i ";"
+
+dataset_options: dataset_option ("," dataset_option)*
+
+dataset_option: option 
+              | keep_option
+              | drop_option
+              | rename_option
 
 option: IDENTIFIER "=" option_value
+
+keep_option: "keep"i "=" variable_list
+
+drop_option: "drop"i "=" variable_list
+
+rename_option: "rename"i "=" "(" rename_pair+ ")"
+
+variable_list: variable+
 
 option_value: STRING 
             | NUMBER 
@@ -55,10 +153,22 @@ assignment: variable "=" expression ";"
 assignment_no_semicolon: variable "=" expression
 
 // IF Statements  
-if_statement: "if"i condition "then"i then_action ";"
+if_statement: "if"i condition "then"i then_action_with_semicolon
+           | "if"i condition "then"i then_action_no_semicolon ";"
 
-then_action: assignment_no_semicolon
-           | expression
+then_action_with_semicolon: do_block
+
+then_action_no_semicolon: assignment_no_semicolon
+                        | expression
+                        | output_no_semicolon
+                        | stop_no_semicolon
+                        | delete_no_semicolon
+
+output_no_semicolon: "output"i dataset_ref?
+
+stop_no_semicolon: "stop"i
+
+delete_no_semicolon: "delete"i
 
 condition: expression comparison_op expression
          | expression
@@ -102,9 +212,11 @@ variable: IDENTIFIER ("." IDENTIFIER)?
 dataset_ref: IDENTIFIER ("." IDENTIFIER)?
 
 // Terminals
-IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
-
 NUMBER: /\d+(\.\d+)?/
+
+FORMAT_LITERAL: /\$[a-zA-Z]*\d+\.?\d*/ | /[a-zA-Z]+\d+\.?\d*/ | /\$\d+\.?\d*/
+
+IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
 
 STRING: /"[^"]*"/ | /'[^']*'/
 
